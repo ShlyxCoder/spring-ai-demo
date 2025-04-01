@@ -29,7 +29,7 @@ spring:
           temperature: 0.8
 
     ollama:
-      base-url: ${OLAMA_BASE_URL}  # 替换为Ollama主机URL环境变量
+      base-url: ${OLLAMA_BASE_URL}  # 替换为Ollama主机URL环境变量
       vectorTableName: vector_store_ollama_deepseek
       chat:
         # 不使用其聊天模型
