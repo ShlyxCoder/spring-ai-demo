@@ -1,13 +1,17 @@
 package com.shelly.ai.controller;
 
 import com.shelly.ai.api.IChatService;
+import com.shelly.ai.common.Result;
 import com.shelly.ai.exception.CustomException;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.Message;
+import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
@@ -30,13 +34,36 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/chat")
 @Slf4j
+@Tag(name = "Chat模块")
 public class ChatController implements IChatService {
     @Resource
     private PgVectorStore pgVectorStore;
     @Resource
     private ChatClient chatClient;
+
+    @GetMapping
+    @Operation(summary = "对话")
+    public Result<String> chat(@RequestParam String message,
+                               @RequestParam(defaultValue = "你是一个助手，请用中文回答问题", required = false) String prompt){
+        return Result.success(chatClient.prompt(
+                // 注意，有添加次序之分，如果先添加用户的信息，将会报错
+                new Prompt(List.of(new SystemMessage(prompt),new UserMessage(message)))
+        ).call().content());
+
+    }
+    @GetMapping("/stream")
+    @Operation(summary = "流式对话")
+    public Flux<ChatResponse> chatStream(
+            @RequestParam String message,
+            @RequestParam(defaultValue = "你是一个助手，请用中文回答问题", required = false) String prompt
+    ) {
+        return chatClient.prompt(
+                new Prompt(List.of( new SystemMessage(prompt),new UserMessage(message)))
+        ).stream().chatResponse();
+    }
     @GetMapping("/withRag")
     @Override
+    @Operation(summary = " rag对话")
     public Flux<ChatResponse> generateStreamRag(String ragTag, String message,
                               @Schema(description = "是否允许用模型自身信息库") @RequestParam(defaultValue = "1", required = false) Integer isAllow){
         log.info("ragTag:{}, message:{}", ragTag, message);
