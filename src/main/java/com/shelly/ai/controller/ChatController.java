@@ -43,6 +43,7 @@ public class ChatController implements IChatService {
 
     @GetMapping
     @Operation(summary = "对话")
+    @Override
     public Result<String> chat(@RequestParam String message,
                                @RequestParam(defaultValue = "你是一个助手，请用中文回答问题", required = false) String prompt){
         return Result.success(chatClient.prompt(
@@ -53,6 +54,7 @@ public class ChatController implements IChatService {
     }
     @GetMapping("/stream")
     @Operation(summary = "流式对话")
+    @Override
     public Flux<ChatResponse> chatStream(
             @RequestParam String message,
             @RequestParam(defaultValue = "你是一个助手，请用中文回答问题", required = false) String prompt
