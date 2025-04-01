@@ -4,3 +4,52 @@ server:
 spring:
   application:
     name: spring-ai-demo
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    username: ${DB_USERNAME}  # 替换为数据库用户名环境变量
+    password: ${DB_PASSWORD}  # 替换为数据库密码环境变量
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/ai-rag-knowledge  # 替换为数据库主机和端口环境变量
+    type: com.zaxxer.hikari.HikariDataSource
+
+  # 注意，这里聊天模型使用的是openai接口下的deepseek，所以也是使用deepseek的apikey
+  # 但如果也要用openai官网的嵌入模型，则只能使用openai官网的apikey
+  # 这里我们选择使用ollama的嵌入模型，所以需要配置ollama的apikey
+  ai:
+    openai:
+      base-url: https://api.deepseek.com
+      api-key: ${OPENAI_API_KEY}  # 替换为OpenAI API密钥环境变量
+      embedding:
+        # 不使用其嵌入模型，直接使用ollama的嵌入模型，一定要设置embedding的enabled为false，否则会报错
+        # options:
+        # model: text-embedding-ada-002
+        enabled: false
+      chat:
+        options:
+          model: deepseek-chat
+          temperature: 0.8
+
+    ollama:
+      base-url: ${OLAMA_BASE_URL}  # 替换为Ollama主机URL环境变量
+      vectorTableName: vector_store_ollama_deepseek
+      chat:
+        # 不使用其聊天模型
+        # options:
+        # model: deepseek-r1:1.5b
+        enabled: false
+      embedding:
+        options:
+          model: nomic-embed-text
+
+redis:
+  sdk:
+    config:
+      host: ${REDIS_HOST}  # 替换为Redis主机环境变量
+      port: ${REDIS_PORT}  # 替换为Redis端口环境变量
+      pool-size: 10
+      min-idle-size: 5
+      idle-timeout: 30000
+      connect-timeout: 5000
+      retry-attempts: 3
+      retry-interval: 1000
+      ping-interval: 60000
+      keep-alive: true
