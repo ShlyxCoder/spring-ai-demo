@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spring AI 聊天助手</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .animate-bounce {
+            animation: bounce 1s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% {
+                transform: translateY(-25%);
+                animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+            }
+            50% {
+                transform: translateY(0);
+                animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+            }
+        }
+
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: .5;
+            }
+        }
+
+        .backdrop-blur-xl {
+            backdrop-filter: blur(24px);
+        }
+
+        .transition-all {
+            transition: all 0.3s ease;
+        }
+
+        .hover\:scale-105:hover {
+            transform: scale(1.05);
+        }
+
+        .hover\:scale-110:hover {
+            transform: scale(1.1);
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .glass-dark {
+            background: rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .chat-scroll {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+        }
+
+        .chat-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .chat-scroll::-webkit-scrollbar-thumb {
+            background-color: rgba(156, 163, 175, 0.5);
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+    <div class="min-h-screen ease-in-out bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50" id="mainContainer">
+        <!-- 动态背景装饰 -->
+        <div class="absolute inset-0 overflow-hidden pointer-events-none">
+            <div class="absolute -top-40 -right-40 w-80 h-80 rounded-full opacity-20 bg-blue-400 blur-3xl animate-pulse" id="bg1"></div>
+            <div class="absolute -bottom-40 -left-40 w-80 h-80 rounded-full opacity-20 bg-indigo-400 blur-3xl animate-pulse" id="bg2" style="animation-delay: 2s;"></div>
+        </div>
+
+        <div class="relative z-10 container mx-auto px-4 py-6 max-w-4xl">
+            <!-- 头部 -->
+            <div class="backdrop-blur-xl rounded-2xl p-6 mb-6 shadow-2xl border bg-white/70 border-white/50 text-gray-800" id="header">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="p-3 rounded-full transition-all duration-500 bg-blue-500/20" id="headerIcon">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 11a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h1 class="text-2xl font-bold">Spring AI 聊天助手</h1>
+                            <p class="text-sm text-gray-600" id="subtitle">智能对话，随时为您服务</p>
+                        </div>
+                    </div>
+
+                    <button id="themeToggle" class="p-3 rounded-full hover:scale-110 bg-gray-200/50 hover:bg-gray-300/50 text-gray-700 transition-all duration-300">
+                        <svg class="w-6 h-6" id="moonIcon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+                        </svg>
+                        <svg class="w-6 h-6 hidden" id="sunIcon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- 模式选择 -->
+                <div class="mt-6 grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <button class="mode-btn active p-3 rounded-xl transition-all duration-300 flex items-center space-x-2 bg-blue-500/20 border-blue-400/50 text-blue-700 border" data-mode="normal">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                        </svg>
+                        <span class="text-sm font-medium">普通对话</span>
+                    </button>
+                    <button class="mode-btn p-3 rounded-xl transition-all duration-300 flex items-center space-x-2 bg-white/30 border-white/30 text-gray-600 hover:bg-white/50 border" data-mode="rag">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                        </svg>
+                        <span class="text-sm font-medium">RAG对话</span>
+                    </button>
+                    <button class="mode-btn p-3 rounded-xl transition-all duration-300 flex items-center space-x-2 bg-white/30 border-white/30 text-gray-600 hover:bg-white/50 border" data-mode="stream">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                        </svg>
+                        <span class="text-sm font-medium">流式对话</span>
+                    </button>
+                    <button class="mode-btn p-3 rounded-xl transition-all duration-300 flex items-center space-x-2 bg-white/30 border-white/30 text-gray-600 hover:bg-white/50 border" data-mode="ragStream">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 11a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
+                        </svg>
+                        <span class="text-sm font-medium">RAG流式</span>
+                    </button>
+                </div>
+
+                <!-- RAG配置 -->
+                <div id="ragConfig" class="mt-4 space-y-3 hidden">
+                    <input type="text" id="ragTag" placeholder="请输入RAG标签" class="w-full p-3 rounded-xl transition-all duration-300 border bg-white/50 border-white/50 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50">
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" id="isAllow" class="w-4 h-4 text-purple-500 rounded">
+                        <span class="text-sm">允许使用模型自身信息库</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- 聊天区域 -->
+            <div class="backdrop-blur-xl rounded-2xl p-6 shadow-2xl border min-h-[500px] flex flex-col bg-white/70 border-white/50" id="chatContainer">
+                <!-- 消息列表 -->
+                <div class="flex-1 overflow-y-auto space-y-4 mb-6 chat-scroll" style="max-height: 60vh;" id="messagesContainer">
+                    <div class="text-center py-12 text-gray-500" id="emptyState">
+                        <svg class="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                        </svg>
+                        <p class="text-lg">开始您的对话吧！</p>
+                        <p class="text-sm mt-2">我是您的AI助手，随时为您服务</p>
+                    </div>
+                </div>
+
+                <!-- 输入区域 -->
+                <div class="border-t pt-4 border-gray-300/30" id="inputArea">
+                    <div class="flex space-x-3">
+                        <textarea id="messageInput" placeholder="输入您的消息..." rows="1" class="flex-1 p-4 rounded-xl resize-none transition-all duration-300 border bg-white/50 border-white/50 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50" style="min-height: 3rem; max-height: 8rem;"></textarea>
+                        <button id="sendButton" class="p-4 rounded-xl transition-all duration-300 hover:scale-105 bg-blue-500/20 hover:bg-blue-500/30 text-blue-600 border border-blue-400/30">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 应用状态
+    let isDarkMode = false;
+    let chatMode = 'normal';
+    let messages = [];
+    let isLoading = false;
+
+    // DOM元素
+    const mainContainer = document.getElementById('mainContainer');
+    const header = document.getElementById('header');
+    const chatContainer = document.getElementById('chatContainer');
+    const themeToggle = document.getElementById('themeToggle');
+    const modeButtons = document.querySelectorAll('.mode-btn');
+    const ragConfig = document.getElementById('ragConfig');
+    const messageInput = document.getElementById('messageInput');
+    const sendButton = document.getElementById('sendButton');
+    const messagesContainer = document.getElementById('messagesContainer');
+    const emptyState = document.getElementById('emptyState');
+
+    // 主题切换
+    function toggleTheme() {
+        isDarkMode = !isDarkMode;
+        updateTheme();
+    }
+
+    function updateTheme() {
+        const moonIcon = document.getElementById('moonIcon');
+        const sunIcon = document.getElementById('sunIcon');
+        const subtitle = document.getElementById('subtitle');
+        const headerIcon = document.getElementById('headerIcon');
+        const bg1 = document.getElementById('bg1');
+        const bg2 = document.getElementById('bg2');
+        const inputArea = document.getElementById('inputArea');
+
+        if (isDarkMode) {
+            // 深色模式
+            mainContainer.className = 'min-h-screen ease-in-out bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900';
+            header.className = 'backdrop-blur-xl rounded-2xl p-6 mb-6 shadow-2xl border bg-white/10 border-white/20 text-white';
+            chatContainer.className = 'backdrop-blur-xl rounded-2xl p-6 shadow-2xl border min-h-[500px] flex flex-col bg-white/10 border-white/20';
+            themeToggle.className = 'p-3 rounded-full hover:scale-110 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 transition-all duration-300';
+            subtitle.className = 'text-sm text-gray-300';
+            headerIcon.className = 'p-3 rounded-full transition-all duration-500 bg-purple-500/30';
+            bg1.className = 'absolute -top-40 -right-40 w-80 h-80 rounded-full opacity-20 bg-purple-500 blur-3xl animate-pulse';
+            bg2.className = 'absolute -bottom-40 -left-40 w-80 h-80 rounded-full opacity-20 bg-violet-500 blur-3xl animate-pulse';
+            inputArea.className = 'border-t pt-4 border-white/20';
+            messageInput.className = 'flex-1 p-4 rounded-xl resize-none transition-all duration-300 border bg-white/10 border-white/20 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50';
+            sendButton.className = 'p-4 rounded-xl transition-all duration-300 hover:scale-105 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 border border-purple-400/30';
+            emptyState.className = 'text-center py-12 text-gray-400';
+
+            moonIcon.classList.add('hidden');
+            sunIcon.classList.remove('hidden');
+
+            // 更新模式按钮样式
+            updateModeButtons(true);
+
+            // 更新RAG配置样式
+            const ragTag = document.getElementById('ragTag');
+            if (ragTag) {
+                ragTag.className = 'w-full p-3 rounded-xl transition-all duration-300 border bg-white/10 border-white/20 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50';
+            }
+        } else {
+            // 浅色模式
+            mainContainer.className = 'min-h-screen ease-in-out bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50';
+            header.className = 'backdrop-blur-xl rounded-2xl p-6 mb-6 shadow-2xl border bg-white/70 border-white/50 text-gray-800';
+            chatContainer.className = 'backdrop-blur-xl rounded-2xl p-6 shadow-2xl border min-h-[500px] flex flex-col bg-white/70 border-white/50';
+            themeToggle.className = 'p-3 rounded-full hover:scale-110 bg-gray-200/50 hover:bg-gray-300/50 text-gray-700 transition-all duration-300';
+            subtitle.className = 'text-sm text-gray-600';
+            headerIcon.className = 'p-3 rounded-full transition-all duration-500 bg-blue-500/20';
+            bg1.className = 'absolute -top-40 -right-40 w-80 h-80 rounded-full opacity-20 bg-blue-400 blur-3xl animate-pulse';
+            bg2.className = 'absolute -bottom-40 -left-40 w-80 h-80 rounded-full opacity-20 bg-indigo-400 blur-3xl animate-pulse';
+            inputArea.className = 'border-t pt-4 border-gray-300/30';
+            messageInput.className = 'flex-1 p-4 rounded-xl resize-none transition-all duration-300 border bg-white/50 border-white/50 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50';
+            sendButton.className = 'p-4 rounded-xl transition-all duration-300 hover:scale-105 bg-blue-500/20 hover:bg-blue-500/30 text-blue-600 border border-blue-400/30';
+            emptyState.className = 'text-center py-12 text-gray-500';
+
+            sunIcon.classList.add('hidden');
+            moonIcon.classList.remove('hidden');
+
+            // 更新模式按钮样式
+            updateModeButtons(false);
+
+            // 更新RAG配置样式
+            const ragTag = document.getElementById('ragTag');
+            if (ragTag) {
+                ragTag.className = 'w-full p-3 rounded-xl transition-all duration-300 border bg-white/50 border-white/50 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50';
+            }
+        }
+    }
+
+    function updateModeButtons(dark) {
+        modeButtons.forEach(btn => {
+            const isActive = btn.classList.contains('active');
+            if (isActive) {
+                if (dark) {
+                    btn.className = 'mode-btn active p-3 rounded-xl transition-all duration-300 flex items-center space-x-2 bg-purple-500/30 border-purple-400/50 text-white border';
+                } else {
+                    btn.className = 'mode-btn active p-3 rounded-xl transition-all duration-300 flex items-center space-x-2 bg-blue-500/20 border-blue-400/50 text-blue-700 border';
+                }
+            } else {
+                if (dark) {
+                    btn.className = 'mode-btn p-3 rounded-xl transition-all duration-300 flex items-center space-x-2 bg-white/5 border-white/10 text-gray-300 hover:bg-white/10 border';
+                } else {
+                    btn.className = 'mode-btn p-3 rounded-xl transition-all duration-300 flex items-center space-x-2 bg-white/30 border-white/30 text-gray-600 hover:bg-white/50 border';
+                }
+            }
+        });
+    }
+
+    // 模式切换
+    function switchMode(mode) {
+        chatMode = mode;
+
+        // 更新按钮状态
+        modeButtons.forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.dataset.mode === mode) {
+                btn.classList.add('active');
+            }
+        });
+
+        // 显示/隐藏RAG配置
+        if (mode === 'rag' || mode === 'ragStream') {
+            ragConfig.classList.remove('hidden');
+        } else {
+            ragConfig.classList.add('hidden');
+        }
+
+        updateModeButtons(isDarkMode);
+    }
+
+    // 发送消息
+    async function sendMessage() {
+        const message = messageInput.value.trim();
+        if (!message || isLoading) return;
+
+        // 添加用户消息
+        addMessage('user', message);
+        messageInput.value = '';
+        setLoading(true);
+
+        try {
+            let url = 'http://localhost:8090';
+            let params = new URLSearchParams();
+
+            switch (chatMode) {
+                case 'normal':
+                    url += '/chat';
+                    params.append('message', message);
+                    break;
+                case 'rag':
+                    url += '/chat/withRag';
+                    params.append('message', message);
+                    params.append('ragTag', document.getElementById('ragTag').value);
+                    if (document.getElementById('isAllow').checked) {
+                        params.append('isAllow', 'true');
+                    }
+                    break;
+                case 'stream':
+                    url += '/chat/stream';
+                    params.append('message', message);
+                    break;
+                case 'ragStream':
+                    url += '/chat/withRagStream';
+                    params.append('message', message);
+                    params.append('ragTag', document.getElementById('ragTag').value);
+                    if (document.getElementById('isAllow').checked) {
+                        params.append('isAllow', 'true');
+                    }
+                    break;
+            }
+
+            const response = await fetch(`${url}?${params.toString()}`);
+
+            if (chatMode === 'stream' || chatMode === 'ragStream') {
+                // 处理流式响应
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let assistantMessage = addMessage('assistant', '');
+                let buffer = '';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    // 将新的chunk添加到缓冲区
+                    buffer += decoder.decode(value, { stream: true });
+                }
+
+                // 流式读取完成后，解析完整的JSON数组
+                try {
+                    const jsonArray = JSON.parse(buffer);
+
+                    if (Array.isArray(jsonArray)) {
+                        // 遍历数组中的每个响应对象
+                        for (let jsonData of jsonArray) {
+                            if (jsonData.result && jsonData.result.output && jsonData.result.output.text) {
+                                const textContent = jsonData.result.output.text;
+                                if (textContent) {
+                                    assistantMessage.content += textContent;
+                                    updateMessage(assistantMessage);
+                                    scrollToBottom();
+
+                                    // 添加小延迟以模拟流式效果
+                                    await new Promise(resolve => setTimeout(resolve, 50));
+                                }
+                            }
+                        }
+                    } else {
+                        // 如果不是数组，按原来的方式处理单个对象
+                        if (jsonArray.result && jsonArray.result.output && jsonArray.result.output.text) {
+                            assistantMessage.content = jsonArray.result.output.text;
+                            updateMessage(assistantMessage);
+                        }
+                    }
+                } catch (parseError) {
+                    console.error('解析流式响应失败:', parseError);
+                    console.log('原始响应数据:', buffer);
+                    assistantMessage.content = '解析响应数据时出错，请稍后再试。';
+                    updateMessage(assistantMessage);
+                }
+            } else {
+                const data = await response.json();
+
+                // 检查响应中是否有错误信息
+                if (data.code && data.code !== 200) {
+                    addMessage('assistant', `服务异常 (${data.code})：${data.message || '未知错误'}`);
+                } else {
+                    addMessage('assistant', data.data || '抱歉，我暂时无法回答这个问题。');
+                }
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            addMessage('assistant', '抱歉，发生了错误，请稍后再试。');
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    // 添加消息
+    function addMessage(type, content) {
+        const message = {
+            type,
+            content,
+            timestamp: new Date(),
+            id: Date.now()
+        };
+
+        messages.push(message);
+        renderMessages();
+        scrollToBottom();
+
+        return message;
+    }
+
+    // 更新消息
+    function updateMessage(message) {
+        const messageElement = document.querySelector(`[data-message-id="${message.id}"]`);
+        if (messageElement) {
+            const contentElement = messageElement.querySelector('.message-content');
+            if (contentElement) {
+                contentElement.textContent = message.content;
+            }
+        }
+    }
+
+    // 渲染消息
+    function renderMessages() {
+        if (messages.length === 0) {
+            emptyState.classList.remove('hidden');
+            return;
+        }
+
+        emptyState.classList.add('hidden');
+
+        const messagesHtml = messages.map(msg => {
+            const isUser = msg.type === 'user';
+            const timeStr = msg.timestamp.toLocaleTimeString('zh-CN', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            return `
+                    <div class="flex ${isUser ? 'justify-end' : 'justify-start'}" data-message-id="${msg.id}">
+                        <div class="max-w-[80%] flex items-start space-x-3 ${isUser ? 'flex-row-reverse space-x-reverse' : ''}">
+                            <div class="p-2 rounded-full transition-all duration-300 ${
+                isUser
+                    ? isDarkMode ? 'bg-purple-500/30' : 'bg-blue-500/20'
+                    : isDarkMode ? 'bg-gray-700/50' : 'bg-gray-200/50'
+            }">
+                                ${isUser ? `
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                    </svg>
+                                ` : `
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                                    </svg>
+                                `}
+                            </div>
+                            <div class="p-4 rounded-2xl transition-all duration-300 border ${
+                isUser
+                    ? isDarkMode
+                        ? 'bg-purple-500/20 text-white border-purple-400/30'
+                        : 'bg-blue-500/10 text-blue-900 border-blue-400/30'
+                    : isDarkMode
+                        ? 'bg-gray-800/50 text-gray-200 border-gray-600/30'
+                        : 'bg-white/60 text-gray-800 border-gray-300/30'
+            }">
+                                <p class="whitespace-pre-wrap message-content">${msg.content}</p>
+                                <p class="text-xs mt-2 opacity-70 ${isUser ? 'text-right' : 'text-left'}">
+                                    ${timeStr}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+        }).join('');
+
+        messagesContainer.innerHTML = messagesHtml;
+
+        // 如果正在加载，添加加载指示器
+        if (isLoading) {
+            const loadingHtml = `
+                    <div class="flex justify-start">
+                        <div class="p-4 rounded-2xl transition-all duration-300 border ${
+                isDarkMode
+                    ? 'bg-gray-800/50 text-gray-200 border-gray-600/30'
+                    : 'bg-white/60 text-gray-800 border-gray-300/30'
+            }">
+                            <div class="flex items-center space-x-2">
+                                <div class="flex space-x-1">
+                                    <div class="w-2 h-2 bg-current rounded-full animate-bounce"></div>
+                                    <div class="w-2 h-2 bg-current rounded-full animate-bounce" style="animation-delay: 0.1s;"></div>
+                                    <div class="w-2 h-2 bg-current rounded-full animate-bounce" style="animation-delay: 0.2s;"></div>
+                                </div>
+                                <span class="text-sm">AI正在思考...</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            messagesContainer.innerHTML += loadingHtml;
+        }
+    }
+
+    // 设置加载状态
+    function setLoading(loading) {
+        isLoading = loading;
+        sendButton.disabled = loading;
+
+        if (loading) {
+            sendButton.classList.add('opacity-50', 'cursor-not-allowed');
+            sendButton.classList.remove('hover:scale-105');
+        } else {
+            sendButton.classList.remove('opacity-50', 'cursor-not-allowed');
+            sendButton.classList.add('hover:scale-105');
+        }
+
+        renderMessages();
+    }
+
+    // 滚动到底部
+    function scrollToBottom() {
+        setTimeout(() => {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }, 100);
+    }
+
+    // 格式化时间
+    function formatTime(timestamp) {
+        return timestamp.toLocaleTimeString('zh-CN', {
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+
+    // 事件监听器
+    themeToggle.addEventListener('click', toggleTheme);
+
+    modeButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            switchMode(btn.dataset.mode);
+        });
+    });
+
+    sendButton.addEventListener('click', sendMessage);
+
+    messageInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+
+    // 自动调整textarea高度
+    messageInput.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 128) + 'px';
+    });
+
+    // 初始化
+    updateTheme();
+    switchMode('normal');
+</script>
+</body>
+</html>

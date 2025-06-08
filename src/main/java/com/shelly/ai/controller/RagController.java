@@ -2,6 +2,7 @@ package com.shelly.ai.controller;
 
 import com.shelly.ai.api.IRagService;
 import com.shelly.ai.common.Result;
+import com.shelly.ai.model.dto.InfoDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Rag模块
@@ -24,6 +26,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/rag")
 @Slf4j
+@CrossOrigin("*")
 @Tag(name = "Rag模块")
 public class RagController implements IRagService {
     @Resource
@@ -54,6 +57,19 @@ public class RagController implements IRagService {
         }
 
         log.info("上传知识库完成 {}", ragTag);
+        return Result.success();
+    }
+    @PostMapping("/upload")
+    @Operation(summary = "单个上传知识库")
+    public Result<Void> upload(@RequestBody InfoDTO infoDTO) {
+        log.info("上传知识库开始 {}", infoDTO.getName());
+        Document document = Document.builder()
+                .text(infoDTO.getValue())
+                .metadata(Map.of("knowledge", "shelly", "name", infoDTO.getName()))
+                .build();
+        List<Document> documentSplitterList = tokenTextSplitter.split(document);
+        pgVectorStore.accept(documentSplitterList);
+        log.info("上传知识库完成 {}", infoDTO.getName());
         return Result.success();
     }
     @GetMapping
