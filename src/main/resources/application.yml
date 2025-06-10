@@ -6,9 +6,9 @@ spring:
     name: spring-ai-demo
   datasource:
     driver-class-name: org.postgresql.Driver
-    username: postgres
-    password: postgres
-    url: jdbc:postgresql://localhost:15432/ai-rag-knowledge
+    username: <username>
+    password: <pwd>
+    url: jdbc:postgresql://<url>:<port>/ai-rag-knowledge
     type: com.zaxxer.hikari.HikariDataSource
 
   #注意，这里聊天模型使用的是openai接口下的deepseek，所以也是使用deepseek的apikey
@@ -17,7 +17,7 @@ spring:
   ai:
     openai:
       base-url: https://api.deepseek.com
-      api-key: <your api key>
+      api-key: <apikey>
       embedding:
         # 不使用其嵌入模型，直接使用ollama的嵌入模型，一定要设置embedding的enabled为false，否则会报错
         # options:
@@ -29,8 +29,8 @@ spring:
           temperature: 0.8
 
     ollama:
-      base-url: <your ollama base url>
-      vectorTableName: vector_store_ollama_deepseek
+      base-url: <url>
+      vectorTableName: <name>
       chat:
         # 不使用其聊天模型
         # options:
@@ -43,8 +43,8 @@ spring:
 redis:
   sdk:
     config:
-      host: <your redis host>
-      port: 6379
+      host: <url>
+      port: <port>
       pool-size: 10
       min-idle-size: 5
       idle-timeout: 30000

@@ -9,8 +9,8 @@ import reactor.core.publisher.Flux;
  * @author shelly
  */
 public interface IChatService {
-    Flux<ChatResponse> generateStreamRag(String ragTag, String message, Integer isAllow);
-    Flux<ChatResponse> chatStream(String message, String prompt);
+    Flux<String> generateStreamRag(String ragTag, String message, Integer isAllow);
+    Flux<String> chatStream(String message, String prompt);
     Result<String> chat(String message, String prompt);
 
     String generateRag(String ragTag, String message, Integer isAllow);

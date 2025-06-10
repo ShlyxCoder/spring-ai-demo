@@ -19,6 +19,7 @@ import org.springframework.ai.chat.prompt.SystemPromptTemplate;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.pgvector.PgVectorStore;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import java.util.*;
@@ -50,21 +51,21 @@ public class ChatController implements IChatService {
         ).call().content());
 
     }
-    @GetMapping("/stream")
+    @GetMapping(value = "/stream")
     @Operation(summary = "流式对话")
     @Override
-    public Flux<ChatResponse> chatStream(
+    public Flux<String> chatStream(
             @RequestParam String message,
             @RequestParam(defaultValue = "你是一个助手，请用中文回答问题", required = false) String prompt
     ) {
-        return chatClient.prompt(
-                new Prompt(List.of( new SystemMessage(prompt),new UserMessage(message)))
-        ).stream().chatResponse();
+        return chatClient.prompt(new Prompt(List.of( new SystemMessage(prompt),new UserMessage(message))))
+                .stream()
+                .content();
     }
-    @GetMapping("/withRagStream")
+    @GetMapping(value = "/withRagStream")
     @Override
     @Operation(summary = " rag流式对话")
-    public Flux<ChatResponse> generateStreamRag(String ragTag, String message,
+    public Flux<String> generateStreamRag(String ragTag, String message,
                               @Schema(description = "是否允许用模型自身信息库") @RequestParam(defaultValue = "1", required = false) Integer isAllow){
         log.info("ragTag:{}, message:{}", ragTag, message);
         if(StringUtils.isBlank(message) || StringUtils.isBlank(ragTag)){
@@ -89,7 +90,7 @@ public class ChatController implements IChatService {
         ragMessage = new SystemPromptTemplate(systemPrompt).createMessage(Map.of("documents", documentsCollectors));
         messages.add(ragMessage);
         messages.add(new UserMessage(message));
-        return chatClient.prompt(new Prompt(messages)).stream().chatResponse();
+        return chatClient.prompt(new Prompt(messages)).stream().content();
     }
     @GetMapping("/withRag")
     @Override

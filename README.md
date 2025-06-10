@@ -155,4 +155,3 @@ spring:
 ##### 		目前项目中开发了两个Tool可供调用。一个是电脑配置，一个是时间工具，测试如下：
 
 ![image](https://github.com/user-attachments/assets/bcf18206-0dd9-47a6-8224-b1ef2ff3d35a)
-spring-ai-demo
